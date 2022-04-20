@@ -23,22 +23,29 @@ class Warping:
     def vectorLength(self,vector):
         return ((vector[0]) **2 + (vector[1]) ** 2) ** 0.5
 
-    def perpendicular(self,vector):
-        return [vector[1],-vector[0]]
+    def perpendicular(self,vector,x):
+        if np.dot([vector[1],-vector[0]],x) >= 0:
+            return [vector[1],-vector[0]]
+        else:
+            return [-vector[1],vector[0]]
 
     def transform(self,L1,L2,X):
         p = L1[0]
         q = L1[1]
         dest_p = L2[0]
         dest_q = L2[1]
-        u = np.matmul(np.subtract(X,p),np.subtract(q,p)) / (self.vectorLength(np.subtract(q,p)) ** 2)
-        v = np.matmul(np.subtract(X,p),self.perpendicular(np.subtract(q,p))) / self.vectorLength(np.subtract(q,p))
-        dest_x = dest_p[0] + u * np.subtract(dest_q,dest_p)[0] + (v * self.perpendicular(np.subtract(dest_q,dest_p))[0]) / self.vectorLength(np.subtract(dest_q,dest_p))
-        dest_y = dest_p[1] + u * np.subtract(dest_q,dest_p)[1] + (v * self.perpendicular(np.subtract(dest_q,dest_p))[1]) / self.vectorLength(np.subtract(dest_q,dest_p))
+        qminp = np.subtract(q,p)
+        Xminp = np.subtract(X,p)
+        dqmindp = np.subtract(dest_q,dest_p)
+        Xmindp = np.subtract(X,dest_p)
+        u = np.dot(Xminp,qminp) / (self.vectorLength(qminp) ** 2)
+        v = np.dot(Xminp,self.perpendicular(qminp,Xminp)) / self.vectorLength(qminp)
+        dest_x = dest_p[0] + u * dqmindp[0] + (v * self.perpendicular(dqmindp,Xmindp)[0]) / self.vectorLength(dqmindp)
+        dest_y = dest_p[1] + u * dqmindp[1] + (v * self.perpendicular(dqmindp,Xmindp)[1]) / self.vectorLength(dqmindp)
         return dest_x, dest_y
 
-    def weight(self):
-        return 1
+    def weight(self,L,x):
+        return 1/( 1 + self.vectorLength(np.subtract(x,L[0]))) 
 
     def warpImage(self,L1,L2):
         shape = self.shape()
@@ -53,17 +60,21 @@ class Warping:
                 xSum = [0,0]
                 weightSum = 0
                 for i in range(len(L1)):
-                    dest_x[i],dest_y[i] = self.transform(L1[i],L2[i],[x,y])
-                    weight[i] = self.weight()
+                    dest_x[i],dest_y[i] = self.transform(L2[i],L1[i],[x,y])
+                    weight[i] = self.weight(L2[i],[x,y])
+                    # print(weight[i])
                     xSum[0] = xSum[0] + dest_x[i] * weight[i]
                     xSum[1] = xSum[1] + dest_y[i] * weight[i]
                     weightSum += weight[i]
-                if int(xSum[0]/weightSum) < width and int(xSum[1]/weightSum) < height:
-                    dest[x,y] = self.img[int(xSum[0]/weightSum),int(xSum[1]/weightSum)]
+                # print(xSum)
+                # new_x = int(xSum[0])
+                # new_y = int(xSum[1])
+                new_x = int(xSum[0]/weightSum)
+                new_y = int(xSum[1]/weightSum)
+                if new_x >= 0 and new_x < width and new_y >=0 and new_y < height:
+                    dest[x,y] = self.img[new_x,new_y]
         return dest
                     
-        
-
     def warping(self,transform):
         shape = self.shape()
         width = shape[0]
@@ -87,18 +98,29 @@ class Warping:
 path = 'img.JPG'
 
 img = Warping(path)
+while 1:
+    cv2.imshow("img",img.img)
+    cv2.waitKey(10)
+    if cv2.L
 # cv2.imshow('img',img.img[400:500,250:450])
 # cv2.waitKey(0)
 
+
+devide = 5
+
 L1 = [
-    [[500,250],[400,350]]
+    [[0//devide,0//devide],[2000//devide,0//devide]],
+    # [[0//devide,0//devide],[0//devide,1000//devide]]
+    # [[500//devide,250//devide],[400//devide,350//devide]]
 ]
 L2 = [
-    [[400,250],[500,350]]
+    [[2000//devide,0//devide],[0//devide,0//devide]],
+    # [[500//devide,500//devide],[0//devide,1000//devide]]
+    # [[400//devide,250//devide],[500//devide,350//devide]]
 ]
 
-# imgshape = img.shape()
-# img.resize([imgshape[1]/3,imgshape[0]/3])
+imgshape = img.shape()
+img.resize([imgshape[1]//devide,imgshape[0]//devide])
 # a = (math.pi * 2) / 360
 # rotate_angle = 90
 # t = np.real([[cos(rotate_angle * a),sin(rotate_angle * a),0],[-sin(rotate_angle * a),cos(rotate_angle * a),0],[0,0,1]])
