@@ -7,11 +7,41 @@ import numpy as np
 class Warping:
    
     def __init__(self,imgPath):
+        self.imagePath = imgPath
         self.img = cv2.imread(imgPath)
+        self.draw = False
+        self.arrStart = []
+        self.L1 = []
+        self.state = 0
+        # self.resize((224,224))
+        cv2.namedWindow(self.imagePath)
+        cv2.setMouseCallback(self.imagePath,self.mouse)
+
+    def mouse(self,event,x,y,flag,para):
+        if event == cv2.EVENT_LBUTTONDOWN:
+            self.state += 1
+            if self.state == 5:
+                self.state = 1
+            print(self.state)
+        if self.state == 0:
+            pass
+        elif self.state == 1:
+            self.arrStart = [x,y]
+            self.state += 1
+            pass
+        elif self.state == 3:
+            cv2.arrowedLine(self.img,self.arrStart,[x,y],[255,255,255],thickness=10)
+            self.L1.append([[self.arrStart[1],self.arrStart[0]],[y,x]])
+            self.state += 1
+            pass
+        
 
     def show(self):
-        cv2.imshow('img',self.img)
-        cv2.waitKey(0)
+        cv2.imshow(self.imagePath,self.img)
+        key = cv2.waitKey(1)
+        if key == 13:
+            print(self.L1)
+            exit()
     
     def resize(self,size):
         size = np.int32(size)
@@ -45,7 +75,8 @@ class Warping:
         return dest_x, dest_y
 
     def weight(self,L,x):
-        return 1/( 1 + self.vectorLength(np.subtract(x,L[0]))) 
+        # return 1/( 1 + self.vectorLength(np.subtract(x,L[0]))) 
+        return 1
 
     def warpImage(self,L1,L2):
         shape = self.shape()
@@ -94,39 +125,26 @@ class Warping:
 
         return new_img
 
-
 path = 'img.JPG'
 
 img = Warping(path)
-while 1:
-    cv2.imshow("img",img.img)
-    cv2.waitKey(10)
-    if cv2.L
-# cv2.imshow('img',img.img[400:500,250:450])
-# cv2.waitKey(0)
+L1 = [[[489, 269], [413, 343]], [[489, 314], [444, 353]], [[321, 471], [281, 583]], [[333, 517], [320, 553]], [[470, 225], [585, 391]], [[592, 394], [569, 548]], [[313, 664], [440, 636]], [[450, 632], [561, 560]]]
+L2 = [[[440, 220], [419, 355]], [[476, 287], [465, 356]], [[253, 577], [336, 479]], [[311, 576], [355, 527]], [[494, 209], [596, 390]], [[593, 390], [573, 551]], [[302, 661], [448, 634]], [[461, 630], [561, 568]]]
 
+L1 = np.array(L1)
+L2 = np.array(L2)
 
-devide = 5
+divide = 5
+divide_arr = np.full(L1.shape,divide,np.int8)
 
-L1 = [
-    [[0//devide,0//devide],[2000//devide,0//devide]],
-    # [[0//devide,0//devide],[0//devide,1000//devide]]
-    # [[500//devide,250//devide],[400//devide,350//devide]]
-]
-L2 = [
-    [[2000//devide,0//devide],[0//devide,0//devide]],
-    # [[500//devide,500//devide],[0//devide,1000//devide]]
-    # [[400//devide,250//devide],[500//devide,350//devide]]
-]
+L1 = L1 // divide_arr
+L2 = L2 // divide_arr
 
-imgshape = img.shape()
-img.resize([imgshape[1]//devide,imgshape[0]//devide])
-# a = (math.pi * 2) / 360
-# rotate_angle = 90
-# t = np.real([[cos(rotate_angle * a),sin(rotate_angle * a),0],[-sin(rotate_angle * a),cos(rotate_angle * a),0],[0,0,1]])
+shape = img.shape()
+img.resize((shape[1]//divide,shape[0]//divide))
 new_img = img.warpImage(L1,L2)
 cv2.imwrite("new.JPG",new_img)
 cv2.imshow('img',new_img)
 cv2.waitKey(0)
-
-img.show()
+# while 1:
+#     img.show()
