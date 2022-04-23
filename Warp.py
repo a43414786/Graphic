@@ -6,6 +6,8 @@ import numpy as np
 import threading
 from multiprocessing import Process
 
+from tqdm import main
+
 
 class Warping:
    
@@ -28,7 +30,6 @@ class Warping:
             self.state += 1
             if self.state == 5:
                 self.state = 1
-            print(self.state)
         if self.state == 0:
             pass
         elif self.state == 1:
@@ -36,7 +37,7 @@ class Warping:
             self.state += 1
             pass
         elif self.state == 3:
-            cv2.arrowedLine(self.img,self.arrStart,[x,y],[255,255,255],thickness=10)
+            cv2.arrowedLine(self.img,self.arrStart,[x,y],[255,255,255],thickness=5)
             if self.isL1:
                 self.L1.append([[self.arrStart[1],self.arrStart[0]],[y,x]])
             else:
@@ -50,6 +51,7 @@ class Warping:
         cv2.imshow(self.imagePath,self.img)
         key = cv2.waitKey(1)
         if key == 13:
+            print('Start Warping')
             self.warpImage()
             self.L1 = []
             self.L2 = []
@@ -85,23 +87,27 @@ class Warping:
         v = np.dot(Xminp,self.perpendicular(qminp,Xminp)) / self.vectorLength(qminp)
         dest_x = dest_p[0] + u * dqmindp[0] + (v * self.perpendicular(dqmindp,Xmindp)[0]) / self.vectorLength(dqmindp)
         dest_y = dest_p[1] + u * dqmindp[1] + (v * self.perpendicular(dqmindp,Xmindp)[1]) / self.vectorLength(dqmindp)
-        return dest_x, dest_y
+        return dest_x, dest_y,u,v
 
     def dist(self,vector,x):
         vector = self.perpendicular(vector,x)
         pass
     
-    def weight(self,L,x):
-        # a = 1
-        # p = 1
-        # b = 1
-        # Lp = L[0]
-        # Lq = L[1]
-        # Xminp = np.subtract(x,Lp)
-        # qminp = np.subtract(Lq,Lp)
-        # length = self.vectorLength(np.subtract(Lq,Lp))
-        # dist = np.dot(Xminp,self.perpendicular(qminp,Xminp)) / self.vectorLength(qminp)
-        # return (length ** p/(a+dist)) ** b
+    def weight(self,L,x,dst_x,u,v):
+        a = 1
+        p = 1
+        b = 1
+        Lp = L[0]
+        Lq = L[1]
+        qminp = np.subtract(Lq,Lp)
+        length = self.vectorLength(qminp)
+        if u >= 0 and u <= 1:
+            dist = abs(v)
+        elif u < 0:
+            dist = self.vectorLength(np.subtract(x,Lp))
+        else:
+            dist = self.vectorLength(np.subtract(x,Lq))
+        return (length ** p/(a+dist)) ** b
         return 1
 
     def warpImage(self):
@@ -120,8 +126,8 @@ class Warping:
                 weightSum = 0
                 for i in range(len(L1)):
 
-                    dest_x[i],dest_y[i] = self.transform(L2[i],L1[i],[x,y])
-                    weight[i] = self.weight(L2[i],[x,y])
+                    dest_x[i],dest_y[i],u,v = self.transform(L2[i],L1[i],[x,y])
+                    weight[i] = self.weight(L2[i],[x,y],[dest_x[i],dest_y[i]],u,v)
                     # print(weight[i])
                     xSum[0] = xSum[0] + dest_x[i] * weight[i]
                     xSum[1] = xSum[1] + dest_y[i] * weight[i]
@@ -129,10 +135,18 @@ class Warping:
                 # print(xSum)
                 # new_x = int(xSum[0])
                 # new_y = int(xSum[1])
-                new_x = int(xSum[0]/weightSum)
-                new_y = int(xSum[1]/weightSum)
-                if new_x >= 0 and new_x < width and new_y >=0 and new_y < height:
-                    dest[x,y] = self.src[new_x,new_y]
+
+                new_x = xSum[0]/weightSum
+                new_y = xSum[1]/weightSum
+                x_low = int(new_x)
+                y_low = int(new_y)
+                    
+                if x_low >= 0 and x_low < width - 1 and y_low >=0 and y_low < height - 1:
+                    color1 = (new_x - x_low) * self.src[x_low,y_low] + (x_low + 1 - new_x) * self.src[x_low + 1,y_low]
+                    color2 = (new_x - x_low) * self.src[x_low,y_low + 1] + (x_low + 1 - new_x) * self.src[x_low,y_low + 1]
+                    color = (new_y - y_low) * color1 + (y_low + 1 - new_y) * color2
+                    color = np.uint8(color)
+                    dest[x,y] = color
         self.img = dest
                     
     def warping(self,transform):
@@ -154,14 +168,20 @@ class Warping:
 
         return new_img
 
-path = 'img.JPG'
+a1 = np.zeros(10)
+a2 = np.full(10,10)
+a3 = a1 - a2
+print(a3 * 10)
 
-img = Warping(path)
+if __name__ == '__main__':
+    path = 'women.jpg'
 
-divide = 1
+    img = Warping(path)
 
-shape = img.shape()
-img.resize((shape[1]//divide,shape[0]//divide))
+    divide = 1
 
-while 1:
-    img.show()
+    shape = img.shape()
+    img.resize((shape[1]//divide,shape[0]//divide))
+
+    while 1:
+        img.show()
