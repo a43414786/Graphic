@@ -1,3 +1,5 @@
+from copy import copy
+from turtle import clone
 import cv2
 import numpy as np
 
@@ -199,6 +201,9 @@ class Image:
                 dest[x,y] = color1 * y_low_scalar[x,y] + color2 * y_up_scalar[x,y]
         self.img = np.uint8(dest)
 
+    def save(self,name):
+        cv2.imwrite(name,self.img)
+
     def show(self):
         cv2.namedWindow(self.imgPath)
         while 1:
@@ -216,9 +221,10 @@ img2.L2 = (np.array(img1.L1) + np.array(img2.L1)) // 2
 print("Start warping")
 img1.warping()
 img2.warping()
+img1.save('cheetah_wapring.jpg')
+img2.save('women_wapring.jpg')
 a = np.int32(img1.img)
 b = np.int32(img2.img)
-img3 = img1.copy()
-img1.img = np.uint8(a * 0.3 + b * 0.7)
-# img.test_img()
-img1.show()
+img3 = copy(img1)
+img3.img = np.uint8(a * 0.3 + b * 0.7)
+img3.save('morphing.jpg')
