@@ -168,6 +168,7 @@ class Warping:
 
         return new_img
 
+<<<<<<< HEAD
 a1 = np.zeros(10)
 a2 = np.full(10,10)
 a3 = a1 - a2
@@ -175,6 +176,9 @@ print(a3 * 10)
 
 if __name__ == '__main__':
     path = 'women.jpg'
+=======
+path = 'cheetah.JPG'
+>>>>>>> 0bc266f7fc637ec6c0e2b683129b160508a7ae72
 
     img = Warping(path)
 
