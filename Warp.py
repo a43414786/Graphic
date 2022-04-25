@@ -154,7 +154,7 @@ class Warping:
 
         return new_img
 
-path = 'img.JPG'
+path = 'cheetah.JPG'
 
 img = Warping(path)
 
