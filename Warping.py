@@ -109,28 +109,13 @@ class Image:
     def lShape(self):
         return self.L1.shape
 
-    def perpendicular(self,dest_PQ,dest_PX,hasDir = False,direct = None):
+    def perpendicular(self,dest_PQ):
         per_destPQ = dest_PQ.copy()
         
         temp_x = per_destPQ[:,:,:,[0]]
         temp_y = per_destPQ[:,:,:,[1]]
         temp = np.concatenate((temp_y,-temp_x),axis= 3)
-
-        temp_pos = temp
-        temp_neg = -temp
-        
-        if hasDir:
-            per_destPQ = np.where(direct,temp_neg,temp_pos)
-            return per_destPQ
-        else:
-            temp = temp * dest_PX
-            shape = temp.shape
-            temp = np.sum(temp,axis = 3)
-            temp = temp < 0
-            temp = np.reshape(temp,(shape[0],shape[1],shape[2],1))
-            temp = np.concatenate((temp,temp),axis=3)
-            per_destPQ = np.where(temp,temp_neg,temp_pos)
-            return per_destPQ,temp
+        return temp
         
     def transform(self):
         self.L1 = np.array(self.L1,dtype=np.int32)
@@ -180,13 +165,13 @@ class Image:
         dest_XQ_vector_length = (dest_QX[:,:,:,[0]] ** 2 + dest_QX[:,:,:,[1]] ** 2) ** 0.5
 
         dest_PXDotPQ = dest_PX * dest_PQ
-        per_destPQ,direct = self.perpendicular(dest_PQ,dest_PX)
+        per_destPQ = self.perpendicular(dest_PQ)
         dest_PXDotper_destPQ = dest_PX * per_destPQ
 
         u = (dest_PXDotPQ[:,:,:,[0]] + dest_PXDotPQ[:,:,:,[1]])/(dest_PQ_vector_length) ** 2
         v = (dest_PXDotper_destPQ[:,:,:,[0]] + dest_PXDotper_destPQ[:,:,:,[1]])/dest_PQ_vector_length
 
-        dest_PXDotper_srcPQ = self.perpendicular(src_PQ,src_PX,True,direct)
+        dest_PXDotper_srcPQ = self.perpendicular(src_PQ)
         length = dest_PQ_vector_length
         dist = np.zeros(shape = u.shape,dtype=np.int32)
 
