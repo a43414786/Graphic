@@ -334,32 +334,88 @@ def animation(imgs:Image = None,step:int = 0,build = False,saveImages = False,di
             if key == 13:
                     break
 
-def multiple_morphing(imgs,weights):
-    L = 0
-    for i in range(len(imgs)):
-        L += np.float32(imgs[i].L1) * weights[i]
-    L /= sum(weights)
-    L = np.int32(L)
-    for i in range(len(imgs)):
-        imgs[i].L2 = L
-        imgs[i].warping()
-    img = np.zeros((imgs[i].img.shape),dtype = np.float32)
+triangle_src = cv2.imread('triangle.jpg')
+triangle_show = copy(triangle_src)
+weights = np.zeros(3,np.float32)
+
+def cal_triangle(vertexs:np.ndarray):
+    global weights
+    temp = copy(vertexs[:,0])
+    vertexs[:,0] = vertexs[:,0] - vertexs[:,1]
+    vertexs[:,1] = vertexs[:,1] - vertexs[:,2]
+    vertexs[:,2] = vertexs[:,2] - temp
+    
+    vertexs = (vertexs[:,:,0] ** 2 + vertexs[:,:,1] ** 2) ** 0.5
+    vertexs = (((vertexs[:,0] ** 2) * (vertexs[:,2] ** 2) - ((vertexs[:,0] ** 2 + vertexs[:,2] ** 2 - vertexs[:,1] ** 2)/2) ** 2)/4) ** 0.5
+    
+    weight_sum = np.sum(vertexs)
+    
+    weights = vertexs / weight_sum
+
+def triangle_mouse(event,x,y,flag,para):
+    global triangle_show,triangle_src,weight
+    if event == cv2.EVENT_LBUTTONDOWN:
+        triangle_show = copy(triangle_src)
+        cv2.arrowedLine(triangle_show,[329,42],[x,y],[0,0,0])
+        cv2.arrowedLine(triangle_show,[33,525],[x,y],[0,0,0])
+        cv2.arrowedLine(triangle_show,[627,525],[x,y],[0,0,0])
+        cv2.imshow('triangle',triangle_show)
+        vertexs = [
+            [[33,525],[x,y],[627,525]],
+            [[329,42],[x,y],[627,525]],
+            [[329,42],[x,y],[33,525]]
+        ]
+        cal_triangle(np.array(vertexs))
+
+def multiple_morphing(imgs):
+    global triangle_show,triangle_src,weights
+    cv2.namedWindow('triangle')
+    cv2.setMouseCallback('triangle',triangle_mouse)
+    cv2.imshow('triangle',triangle_show)
+
+    img = np.zeros((imgs[0].img.shape),dtype = np.float32)
     for i in range(len(imgs)):
         img += np.float32(imgs[i].img) * weights[i]
     img /= sum(weights)
     img = np.uint8(img)
-    cv2.imshow('img',img)
-    cv2.waitKey(0)
+
+    origin_imgs = []
+    for i in imgs:
+        origin_imgs.append(copy(i))
     
+    while 1:
+        while 1:
+            cv2.imshow('img',img)
+            key = cv2.waitKey(1)
+            if key == 13:
+                print("Start blending")
+                break
+        imgs = []
+        for i in origin_imgs:
+            imgs.append(copy(i))
+        L = 0
+        for i in range(len(imgs)):
+            L += np.float32(imgs[i].L1) * weights[i]
+        L /= sum(weights)
+        L = np.int32(L)
+        for i in range(len(imgs)):
+            imgs[i].L2 = L
+            imgs[i].warping()
+        img = np.zeros((imgs[i].img.shape),dtype = np.float32)
+        for i in range(len(imgs)):
+            img += np.float32(imgs[i].img) * weights[i]
+        img /= sum(weights)
+        img = np.uint8(img)
+        
 
 
 if __name__ == '__main__':
     
     draw_line = False # Whether draw line by yourself,True for draw,False for preset line segment
     isBase = False  # Whether run base or not , True for run base
-    isAnimation = True # Whether run animation or not , True for run animation
+    isAnimation = False # Whether run animation or not , True for run animation
     isRebuildAnimation = False # If run animation , rebuild animation or run pre-build animation , True for rebuild animation
-    isMultipleMorphing = False # Whether run multiple morphing or not , True for run multiple morphing
+    isMultipleMorphing = True # Whether run multiple morphing or not , True for run multiple morphing
 
 
     women = Image('women.jpg')
@@ -412,6 +468,5 @@ if __name__ == '__main__':
                 B.draw_line()
                 C.draw_line()
         imgs = [A,B,C]
-        weights = [0.3,0.4,0.2]
-        multiple_morphing(imgs,weights)
+        multiple_morphing(imgs)
     
